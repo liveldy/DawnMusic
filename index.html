@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>音乐播放器</title>
+
     <style>
         @font-face {
             font-family: 'CustomFont';
@@ -31,6 +32,7 @@
             width: 100vw;
             height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
         }
@@ -39,11 +41,10 @@
             font-size: 10vw;
             cursor: pointer;
             text-align: center;
-            padding: 5%;
+            padding: 3%;
             transition: opacity 0.3s;
             user-select: none;
             width: 90%;
-            max-width: 90%;
             word-wrap: break-word;
             line-height: 1.2;
             font-weight: normal;
@@ -53,6 +54,19 @@
             opacity: 0.8;
         }
 
+        .music-lyric {
+            margin-top: 1vh;
+            text-align: center;
+            font-size: 4vw;
+            opacity: 0.85;
+            user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 90%;
+            line-height: 1.4;
+        }
+
         .buttons {
             position: absolute;
             bottom: 20px;
@@ -60,7 +74,7 @@
             justify-content: space-between;
             width: 100%;
             padding: 0 20px;
-            opacity: 0; 
+            opacity: 0;
             transition: opacity 0.3s ease;
         }
 
@@ -68,7 +82,7 @@
             background-color: rgba(255, 255, 255, 0.2);
             border: none;
             color: white;
-            padding: 15px 30px;
+            padding: 15px;
             font-size: 1.5rem;
             cursor: pointer;
             border-radius: 50%;
@@ -93,15 +107,15 @@
                 top: 0;
                 left: 0;
             }
-            
+
             .music-title {
                 font-size: 10vh;
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-90deg);
-                width: 80vh;
-                height: 80vw;
+                transform: rotate(-90deg);
+            }
+
+            .music-lyric {
+                font-size: 4vh;
+                transform: rotate(-90deg);
             }
         }
 
@@ -110,155 +124,180 @@
                 opacity: 1;
             }
         }
-
-        @media (hover: none) {
-            .buttons {
-                opacity: 0;
-            }
-        }
     </style>
 </head>
+
 <body>
-    <div class="player-container">
-        <div class="music-title" id="title">加载中...</div>
-        <div class="buttons">
-            <button id="prev">◀</button>
-            <button id="next">▶</button>
-        </div>
-        <audio id="audio-player" style="display: none;"></audio>
+<div class="player-container">
+    <div class="music-title" id="title">加载中...</div>
+    <div class="music-lyric" id="lyric"></div>
+
+    <div class="buttons">
+        <button id="prev">◀</button>
+        <button id="next">▶</button>
     </div>
 
-    <script>
-        const musicList = [
-            { 
-                title: "东南苦行山", 
-                src: "music/001.mp3",
-                color: "#3357FF" 
-            },
-            { 
-                title: "牵丝戏", 
-                src: "music/002.mp3",
-                color: "#DC143C"
-            },
-            { 
-                title: "弱水三千", 
-                src: "music/003.mp3",
-                color: "#DC143C"
-            }
-        ];
+    <audio id="audio-player" style="display:none;"></audio>
+</div>
 
-        let currentIndex = 0;
-        const audioPlayer = document.getElementById('audio-player');
-        const titleElement = document.getElementById('title');
-        const prevButton = document.getElementById('prev');
-        const nextButton = document.getElementById('next');
-
-        function loadMusic(index, autoPlay = true) {
-            if (index < 0 || index >= musicList.length) return;
-            const music = musicList[index];
-            audioPlayer.src = music.src;
-            titleElement.textContent = music.title;
-            
-            document.title = music.title + " - 音乐播放器";
-            
-            if (music.color) {
-                titleElement.style.color = music.color;
-            }
-            
-            if (autoPlay) {
-                const playPromise = audioPlayer.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(function(error) {
-                        console.log("自动播放被阻止，等待用户交互:", error);
-                    });
-                }
-            }
+<script>
+    const musicList = [
+        {
+            title: "东南苦行山",
+            src: "music/001.mp3",
+            lrc: "lrc/001.lrc",
+            color: "#3357FF"
+        },
+        {
+            title: "牵丝戏",
+            src: "music/002.mp3",
+            lrc: "lrc/002.lrc",
+            color: "#DC143C"
+        },
+        {
+            title: "弱水三千",
+            src: "music/003.mp3",
+            lrc: "lrc/003.lrc",
+            color: "#DC143C"
+        },
+        {
+            title: "辞九门回忆",
+            src: "music/004.mp3",
+            lrc: "lrc/004.lrc",
+            color: "#DC143C"
+        },
+        {
+            title: "鸳鸯戏",
+            src: "music/005.mp3",
+            lrc: "lrc/005.lrc",
+            color: "#DC143C"
+        },
+        {
+            title: "唐人恋曲",
+            src: "music/006.mp3",
+            lrc: "lrc/006.lrc",
+            color: "#DC143C"
+        },
+        {
+            title: "半壶纱",
+            src: "music/007.mp3",
+            lrc: "lrc/007.lrc",
+            color: "#DC143C"
         }
+    ];
 
-        function togglePlayPause() {
-            if (audioPlayer.paused) {
-                audioPlayer.play().catch(function(error) {
-                    console.log("播放失败:", error);
-                });
-            } else {
-                audioPlayer.pause();
+    let currentIndex = 0;
+    let lyrics = [];
+
+    const audioPlayer = document.getElementById('audio-player');
+    const titleElement = document.getElementById('title');
+    const lyricElement = document.getElementById('lyric');
+    const prevButton = document.getElementById('prev');
+    const nextButton = document.getElementById('next');
+
+    async function loadLyrics(path) {
+		lyrics = [];
+		lyricElement.textContent = '';
+
+		if (!path) return;
+
+		try {
+			const res = await fetch(path);
+			const text = await res.text();
+
+			const lines = text.split(/\r?\n/);
+			const timeReg = /^\[(\d+):(\d+\.?\d*)](.*)$/;
+
+			lines.forEach(line => {
+				const match = line.match(timeReg);
+				if (!match) return;
+
+				const minutes = parseInt(match[1], 10);
+				const seconds = parseFloat(match[2]);
+				const content = match[3].trim();
+
+				// ★ 关键：忽略空歌词行
+				if (!content) return;
+
+				lyrics.push({
+					time: minutes * 60 + seconds,
+					content
+				});
+			});
+
+			lyrics.sort((a, b) => a.time - b.time);
+
+			// 调试用（可保留）
+			console.log('已解析歌词行数:', lyrics.length);
+		} catch (e) {
+			console.error('歌词加载失败:', e);
+		}
+	}
+
+    async function loadMusic(index, autoPlay = true) {
+        if (index < 0 || index >= musicList.length) return;
+        const music = musicList[index];
+
+        audioPlayer.src = music.src;
+        titleElement.textContent = music.title;
+        document.title = music.title + " - 音乐播放器";
+
+        titleElement.style.color = music.color || '#fff';
+        lyricElement.style.color = music.color || '#fff';
+
+        await loadLyrics(music.lrc);
+
+        if (autoPlay) {
+            audioPlayer.play().catch(() => {});
+        }
+    }
+
+    audioPlayer.addEventListener('timeupdate', () => {
+    if (!lyrics.length) return;
+
+    const currentTime = audioPlayer.currentTime;
+
+    for (let i = lyrics.length - 1; i >= 0; i--) {
+        if (currentTime >= lyrics[i].time) {
+            if (lyricElement.textContent !== lyrics[i].content) {
+                lyricElement.textContent = lyrics[i].content;
             }
+            break;
         }
+    }
+});
 
-        function playNext() {
-            currentIndex = (currentIndex + 1) % musicList.length;
-            loadMusic(currentIndex, true);
+    function togglePlayPause() {
+        audioPlayer.paused ? audioPlayer.play() : audioPlayer.pause();
+    }
+
+    function playNext() {
+        currentIndex = (currentIndex + 1) % musicList.length;
+        loadMusic(currentIndex, true);
+    }
+
+    function playPrev() {
+        currentIndex = (currentIndex - 1 + musicList.length) % musicList.length;
+        loadMusic(currentIndex, true);
+    }
+
+    titleElement.addEventListener('click', togglePlayPause);
+    prevButton.addEventListener('click', playPrev);
+    nextButton.addEventListener('click', playNext);
+    audioPlayer.addEventListener('ended', playNext);
+
+    document.addEventListener('keydown', e => {
+        if (e.key === ' ') {
+            e.preventDefault();
+            togglePlayPause();
+        } else if (e.key === 'ArrowLeft') {
+            playPrev();
+        } else if (e.key === 'ArrowRight') {
+            playNext();
         }
+    });
 
-        function playPrev() {
-            currentIndex = (currentIndex - 1 + musicList.length) % musicList.length;
-            loadMusic(currentIndex, true);
-        }
-
-        function handleOrientationChange() {
-            const isPortrait = window.matchMedia("(orientation: portrait)").matches;
-            
-            if (isPortrait) {
-                document.querySelector('.player-container').style.transform = 'rotate(90deg)';
-            } else {
-                document.querySelector('.player-container').style.transform = 'none';
-            }
-        }
-
-        titleElement.addEventListener('click', togglePlayPause);
-        prevButton.addEventListener('click', playPrev);
-        nextButton.addEventListener('click', playNext);
-        audioPlayer.addEventListener('ended', playNext); // 当前歌曲结束时自动播放下一首
-        
-        window.addEventListener('resize', handleOrientationChange);
-        window.addEventListener('orientationchange', handleOrientationChange);
-
-        document.addEventListener('keydown', (event) => {
-            switch(event.key) {
-                case ' ':
-                    event.preventDefault();
-                    togglePlayPause();
-                    break;
-                case 'ArrowLeft':
-                    playPrev();
-                    break;
-                case 'ArrowRight':
-                    playNext();
-                    break;
-            }
-        });
-
-        let touchStartX = 0;
-        let touchEndX = 0;
-        
-        document.addEventListener('touchstart', (event) => {
-            touchStartX = event.changedTouches[0].screenX;
-        });
-        
-        document.addEventListener('touchend', (event) => {
-            touchEndX = event.changedTouches[0].screenX;
-            handleSwipe();
-        });
-        
-        function handleSwipe() {
-            const swipeThreshold = 50;
-            const diff = touchStartX - touchEndX;
-            
-            if (Math.abs(diff) > swipeThreshold) {
-                if (diff > 0) {
-                    playNext();
-                } else {
-                    playPrev();
-                }
-            }
-        }
-
-        function init() {
-            loadMusic(0, true);
-            handleOrientationChange();
-        }
-
-        window.addEventListener('DOMContentLoaded', init);
-    </script>
+    window.addEventListener('DOMContentLoaded', () => loadMusic(0, true));
+</script>
 </body>
 </html>
