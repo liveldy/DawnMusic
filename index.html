@@ -1,333 +1,496 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音乐播放器</title>
+<meta charset="UTF-8">
+<title>破晓音乐</title>
 
-    <style>
-        @font-face {
-            font-family: 'CustomFont';
-            src: url('SuXinShiGuYinSongJian-1.ttf') format('truetype');
-        }
+<style>
+@font-face {
+    font-family: 'CustomFont';
+    src: url('SuXinShiGuYinSongJian.ttf') format('truetype');
+}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-weight:300;
+}
 
-        body {
-            background-color: #000;
-            font-family: 'CustomFont', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
+body{
+    background:#000;
+    font-family:'CustomFont',sans-serif;
+    overflow:hidden;
+    color:#fff;
+}
 
-        .player-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
+.player{
+    width:100vw;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    position:relative;
+}
 
-        .music-title {
-            font-size: 10vw;
-            cursor: pointer;
-            text-align: center;
-            padding: 3%;
-            transition: opacity 0.3s;
-            user-select: none;
-            width: 90%;
-            word-wrap: break-word;
-            line-height: 1.2;
-            font-weight: normal;
-        }
+/* ===== 主显示 ===== */
+#title{
+    font-size:96px;
+    text-align:center;
+    cursor:pointer;
+    user-select:none;
+    font-weight:400;
+}
 
-        .music-title:hover {
-            opacity: 0.8;
-        }
+#lyric{
+    margin-top:20px;
+    font-size:36px;
+    opacity:.85;
+    min-height:1.4em;
+}
 
-        .music-lyric {
-            margin-top: 1vh;
-            text-align: center;
-            font-size: 4vw;
-            opacity: 0.85;
-            user-select: none;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 90%;
-            line-height: 1.4;
-        }
+/* ===== 按钮 ===== */
+button{
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    border:none;
+    background:rgba(255,255,255,.2);
+    color:#fff;
+    cursor:pointer;
+    font-size:18px;
+}
+button:hover{background:rgba(255,255,255,.5);}
 
-        .buttons {
-            position: absolute;
-            bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            padding: 0 20px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
+.buttons,.top-buttons{
+    position:absolute;
+    display:flex;
+    gap:12px;
+    opacity:0;
+    transition:.3s;
+}
 
-        button {
-            background-color: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 15px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+.buttons{bottom:20px;}
+.top-buttons{top:20px;left:20px;flex-direction:column;}
 
-        button:hover {
-            background-color: rgba(255, 255, 255, 0.5);
-        }
+.player:hover .buttons,
+.player:hover .top-buttons{opacity:1;}
 
-        @media (orientation: portrait) {
-            .player-container {
-                transform: rotate(90deg);
-                transform-origin: left top;
-                width: 100vh;
-                height: 100vw;
-                position: absolute;
-                top: 0;
-                left: 0;
-            }
+/* ===== 遮罩 ===== */
+.mask{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.6);
+    display:none;
+    z-index:10;
+}
 
-            .music-title {
-                font-size: 10vh;
-                transform: rotate(-90deg);
-            }
+/* ===== 模态 ===== */
+.modal{
+    position:fixed;
+    inset:0;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:11;
+}
 
-            .music-lyric {
-                font-size: 4vh;
-                transform: rotate(-90deg);
-            }
-        }
+.modal-box{
+    background:#111;
+    width:420px;
+    font-weight:300;
+}
 
-        @media (hover: hover) {
-            .player-container:hover .buttons {
-                opacity: 1;
-            }
-        }
-    </style>
+/* ===== 播放列表 ===== */
+.playlist{
+    position:fixed;
+    left:0;
+    top:0;
+    width:300px;
+    height:100%;
+    background:#111;
+    transform:translateX(-100%);
+    transition:.3s;
+    z-index:11;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+}
+
+.playlist.show{transform:translateX(0);}
+
+.playlist h3{
+    font-size:18px;
+    font-weight:400;
+}
+
+.playlist ul{
+    list-style:none;
+    margin-top:16px;
+    overflow-y:auto;
+    flex:1;
+    padding-right:6px;
+}
+
+.playlist li{
+    padding:10px 6px;
+    cursor:pointer;
+    color:#fff;
+    opacity:.55;
+    transition:.2s;
+    font-size:15px;
+}
+
+.playlist li:hover{opacity:1;}
+
+.playlist li.active{
+    opacity:1;
+    font-weight:400;
+}
+
+/* ===== 设置模态框 ===== */
+#settingModal .modal-box{
+    padding:32px;
+    line-height:1.8;
+}
+
+#settingModal h2{
+    font-size:26px;
+    margin-bottom:24px;
+    font-weight:400;
+}
+
+#settingModal p{
+    font-size:17px;
+    margin:22px 0 12px;
+}
+
+#settingModal label{
+    display:block;
+    font-size:15px;
+    margin:8px 0;
+}
+
+#settingModal input[type="range"]{
+    width:100%;
+    margin-top:8px;
+}
+
+/* ===== 关于模态框 ===== */
+.about-box{
+    padding:32px;
+    line-height:1.9;
+}
+
+.about-box h2{
+    font-size:28px;
+    margin-bottom:24px;
+    text-align:center;
+    font-weight:400;
+}
+
+.about-quotes{
+    text-align:center;
+    font-size:17px;
+    opacity:.9;
+}
+
+.about-quotes p{
+    margin:10px 0;
+}
+
+/* 版本区域可滚动 */
+.about-version{
+    margin-top:28px;
+    font-size:15px;
+    max-height:200px;
+    overflow-y:auto;
+    padding-right:8px;
+}
+
+.current-version{
+    font-weight:400;
+    margin-bottom:12px;
+}
+
+.about-version h3{
+    margin:14px 0 10px;
+    font-size:16px;
+    font-weight:400;
+}
+
+.version-list{
+    list-style:none;
+    padding:0;
+}
+
+.version-list li{
+    margin-bottom:14px;
+}
+
+.version-list strong{
+    font-weight:400;
+}
+
+.version-list span{
+    opacity:.6;
+    margin-left:6px;
+}
+
+.version-list div{
+    margin-top:6px;
+    opacity:.8;
+}
+
+/* ===== 滚动条统一美化 ===== */
+.playlist ul::-webkit-scrollbar,
+.about-version::-webkit-scrollbar{
+    width:6px;
+}
+
+.playlist ul::-webkit-scrollbar-thumb,
+.about-version::-webkit-scrollbar-thumb{
+    background:rgba(255,255,255,.25);
+    border-radius:3px;
+}
+
+.playlist ul::-webkit-scrollbar-track,
+.about-version::-webkit-scrollbar-track{
+    background:transparent;
+}
+</style>
 </head>
 
 <body>
-<div class="player-container">
-    <div class="music-title" id="title">加载中...</div>
-    <div class="music-lyric" id="lyric"></div>
+
+<div class="player">
+    <div class="top-buttons">
+        <button id="btnSetting">⚙</button>
+        <button id="btnAbout">i</button>
+        <button id="btnList">≡</button>
+    </div>
+
+    <div id="title">加载中…</div>
+    <div id="lyric">&nbsp;</div>
 
     <div class="buttons">
         <button id="prev">◀</button>
         <button id="next">▶</button>
     </div>
 
-    <audio id="audio-player" style="display:none;"></audio>
+    <audio id="audio"></audio>
+</div>
+
+<div class="playlist" id="playlist">
+    <h3>歌曲列表</h3>
+    <ul id="songList"></ul>
+</div>
+
+<div class="mask" id="mask"></div>
+
+<!-- 关于 -->
+<div class="modal" id="aboutModal">
+    <div class="modal-box about-box">
+        <h2>破晓音乐</h2>
+
+        <div class="about-quotes">
+            <p>孩儿立志出乡关，学不成名誓不还</p>
+            <p>问苍茫大地，谁主沉浮</p>
+            <p>今日长缨在手，何时缚住苍龙</p>
+            <p>雄关漫道真如铁，而今迈步从头越</p>
+            <p>数风流人物，还看今朝</p>
+            <p>为有牺牲多壮志，敢教日月换新天</p>
+            <p>待到山花烂漫时，她在丛中笑</p>
+            <p>人民胜利今何在，满目新贵满目衰</p>
+            <p>你们怎么办，只有天知道</p>
+        </div>
+
+        <div class="about-version">
+            <p class="current-version">当前版本：V1.1.0</p>
+
+            <h3>版本历史</h3>
+            <ul class="version-list">
+                <li>
+                    <strong>V1.1.0</strong>
+                    <span>（2026/01/09）</span>
+                    <div>
+                        1.新增设置功能：标题和歌词大小调整、显示模式切换<br>
+                        2.新增歌曲列表功能，支持快速索引与切换<br>
+						3.歌词功能正式加入（所有音乐有歌词）<br>
+						4.新增收录8首音乐（辞九门回忆、鸳鸯戏、唐人恋曲、半壶纱、关山酒、春庭雪、赐我、折风渡夜）
+                    </div>
+                </li>
+                <li>
+                    <strong>V1.0.0</strong>
+                    <span>（2026/01/07）</span>
+                    <div>
+						1.首次发布，收录3首音乐（弱水三千、东南苦行山和牵丝戏）<br>
+						2.歌词试验功能（仅东南苦行山有歌词）
+					</div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- 设置 -->
+<div class="modal" id="settingModal">
+    <div class="modal-box">
+        <h2>设置</h2>
+
+        <p>模式</p>
+        <label><input type="radio" name="mode" value="title"> 标题</label>
+        <label><input type="radio" name="mode" value="title-lyric"> 标题-歌词</label>
+        <label><input type="radio" name="mode" value="lyric"> 歌词</label>
+
+        <p>标题大小</p>
+        <input type="range" id="titleSize" min="40" max="140">
+
+        <p>歌词大小</p>
+        <input type="range" id="lyricSize" min="20" max="80">
+    </div>
 </div>
 
 <script>
-    const musicList = [
-        {
-            title: "弱水三千",
-            src: "music/003.mp3",
-            lrc: "lrc/003.lrc",
-            color: "#DC143C"
-        },
-		{
-            title: "东南苦行山",
-            src: "music/001.mp3",
-            lrc: "lrc/001.lrc",
-            color: "#3357FF"
-        },
-        {
-            title: "牵丝戏",
-            src: "music/002.mp3",
-            lrc: "lrc/002.lrc",
-            color: "#DC143C"
-        },
-        {
-            title: "辞九门回忆",
-            src: "music/004.mp3",
-            lrc: "lrc/004.lrc",
-            color: "#DC143C"
-        },
-        {
-            title: "鸳鸯戏",
-            src: "music/005.mp3",
-            lrc: "lrc/005.lrc",
-            color: "#DC143C"
-        },
-        {
-            title: "唐人恋曲",
-            src: "music/006.mp3",
-            lrc: "lrc/006.lrc",
-            color: "#DC143C"
-        },
-        {
-            title: "半壶纱",
-            src: "music/007.mp3",
-            lrc: "lrc/007.lrc",
-            color: "#DC143C"
-        },
-        {
-            title: "关山酒",
-            src: "music/008.mp3",
-            lrc: "lrc/008.lrc",
-            color: "#DC143C"
-        },
-        {
-            title: "春庭雪",
-            src: "music/009.mp3",
-            lrc: "lrc/009.lrc",
-            color: "#DC143C"
-        },
-        {
-            title: "赐我",
-            src: "music/010.mp3",
-            lrc: "lrc/010.lrc",
-            color: "#DC143C"
-        },
-        {
-            title: "精卫",
-            src: "music/011.mp3",
-            lrc: "lrc/011.lrc",
-            color: "#DC143C"
-        },
-        {
-            title: "折风渡夜",
-            src: "music/012.mp3",
-            lrc: "lrc/012.lrc",
-            color: "#DC143C"
-        }
-    ];
+/* ===== 数据 ===== */
+const musicList=[
+ {title:"弱水三千",src:"music/003.mp3",lrc:"lrc/003.lrc",color:"#DC143C"},
+ {title:"东南苦行山",src:"music/001.mp3",lrc:"lrc/001.lrc",color:"#3357FF"},
+ {title:"牵丝戏",src:"music/002.mp3",lrc:"lrc/002.lrc",color:"#DC143C"},
+ {title:"辞九门回忆",src:"music/004.mp3",lrc:"lrc/004.lrc",color:"#DC143C"},
+ {title:"鸳鸯戏",src:"music/005.mp3",lrc:"lrc/005.lrc",color:"#DC143C"},
+ {title:"唐人恋曲",src:"music/006.mp3",lrc:"lrc/006.lrc",color:"#DC143C"},
+ {title:"半壶纱",src:"music/007.mp3",lrc:"lrc/007.lrc",color:"#DC143C"},
+ {title:"关山酒",src:"music/008.mp3",lrc:"lrc/008.lrc",color:"#DC143C"},
+ {title:"春庭雪",src:"music/009.mp3",lrc:"lrc/009.lrc",color:"#DC143C"},
+ {title:"赐我",src:"music/010.mp3",lrc:"lrc/010.lrc",color:"#DC143C"},
+ {title:"折风渡夜",src:"music/012.mp3",lrc:"lrc/012.lrc",color:"#DC143C"}
+];
 
-    let currentIndex = 0;
-    let lyrics = [];
+let currentIndex=0;
+let currentTitle='';
+let lyrics=[];
 
-    const audioPlayer = document.getElementById('audio-player');
-    const titleElement = document.getElementById('title');
-    const lyricElement = document.getElementById('lyric');
-    const prevButton = document.getElementById('prev');
-    const nextButton = document.getElementById('next');
+/* DOM */
+const audio=document.getElementById('audio');
+const title=document.getElementById('title');
+const lyric=document.getElementById('lyric');
+const songList=document.getElementById('songList');
+const playlist=document.getElementById('playlist');
+const mask=document.getElementById('mask');
+const aboutModal=document.getElementById('aboutModal');
+const settingModal=document.getElementById('settingModal');
 
-    async function loadLyrics(path) {
-		lyrics = [];
-		lyricElement.textContent = '';
+/* 设置 */
+const settings={
+ mode:getCookie('mode')||'title-lyric',
+ titleSize:+getCookie('titleSize')||96,
+ lyricSize:+getCookie('lyricSize')||36
+};
 
-		if (!path) return;
+function setCookie(k,v){document.cookie=`${k}=${v};path=/;max-age=31536000`;}
+function getCookie(k){
+ const m=document.cookie.match(new RegExp('(^| )'+k+'=([^;]+)'));
+ return m?m[2]:null;
+}
 
-		try {
-			const res = await fetch(path);
-			const text = await res.text();
+function applySettings(){
+ title.style.fontSize=settings.titleSize+'px';
+ lyric.style.fontSize=settings.lyricSize+'px';
+ title.style.display='';
+ lyric.style.display='';
 
-			const lines = text.split(/\r?\n/);
-			const timeReg = /^\[(\d+):(\d+\.?\d*)](.*)$/;
+ if(settings.mode==='title'){lyric.style.display='none';}
+ if(settings.mode==='lyric'){lyric.style.display='none';}
+ setCookie('mode',settings.mode);
+ setCookie('titleSize',settings.titleSize);
+ setCookie('lyricSize',settings.lyricSize);
+}
 
-			lines.forEach(line => {
-				const match = line.match(timeReg);
-				if (!match) return;
+async function loadLyrics(path){
+ lyrics=[];
+ lyric.innerHTML='&nbsp;';
+ if(!path)return;
+ const text=await fetch(path).then(r=>r.text());
+ text.split('\n').forEach(l=>{
+  const m=l.match(/\[(\d+):(\d+\.?\d*)](.*)/);
+  if(m)lyrics.push({time:+m[1]*60+ +m[2],content:m[3]});
+ });
+}
 
-				const minutes = parseInt(match[1], 10);
-				const seconds = parseFloat(match[2]);
-				const content = match[3].trim();
+async function loadMusic(i,play=true){
+ currentIndex=i;
+ const m=musicList[i];
+ audio.src=m.src;
+ currentTitle=m.title;
+ title.textContent=currentTitle;
+ title.style.color=m.color;
+ lyric.style.color=m.color;
+ await loadLyrics(m.lrc);
+ applySettings();
+ updatePlaylist();
+ if(play)audio.play();
+}
 
-				// ★ 关键：忽略空歌词行
-				if (!content) return;
+audio.ontimeupdate=()=>{
+ for(let i=lyrics.length-1;i>=0;i--){
+  if(audio.currentTime>=lyrics[i].time){
+   if(settings.mode==='title-lyric')lyric.textContent=lyrics[i].content||'';
+   if(settings.mode==='lyric')title.textContent=lyrics[i].content||currentTitle;
+   break;
+  }
+ }
+};
 
-				lyrics.push({
-					time: minutes * 60 + seconds,
-					content
-				});
-			});
+function updatePlaylist(){
+ songList.innerHTML='';
+ musicList.forEach((m,i)=>{
+  const li=document.createElement('li');
+  li.textContent=m.title;
+  if(i===currentIndex){
+   li.classList.add('active');
+   li.style.color=m.color;
+  }else{
+   li.style.color='#fff';
+  }
+  li.onclick=()=>loadMusic(i,true);
+  songList.appendChild(li);
+ });
+}
 
-			lyrics.sort((a, b) => a.time - b.time);
+prev.onclick=()=>loadMusic((currentIndex-1+musicList.length)%musicList.length,true);
+next.onclick=()=>loadMusic((currentIndex+1)%musicList.length,true);
+audio.onended=()=>next.onclick();
+title.onclick=()=>audio.paused?audio.play():audio.pause();
 
-			// 调试用（可保留）
-			console.log('已解析歌词行数:', lyrics.length);
-		} catch (e) {
-			console.error('歌词加载失败:', e);
-		}
-	}
+function hideAll(){
+ aboutModal.style.display='none';
+ settingModal.style.display='none';
+ playlist.classList.remove('show');
+ mask.style.display='none';
+}
 
-    async function loadMusic(index, autoPlay = true) {
-        if (index < 0 || index >= musicList.length) return;
-        const music = musicList[index];
+btnSetting.onclick=()=>{hideAll();settingModal.style.display='flex';mask.style.display='block';};
+btnAbout.onclick=()=>{hideAll();aboutModal.style.display='flex';mask.style.display='block';};
+btnList.onclick=()=>{hideAll();playlist.classList.add('show');mask.style.display='block';};
 
-        audioPlayer.src = music.src;
-        titleElement.textContent = music.title;
-        document.title = music.title + " - 音乐播放器";
+mask.onclick=hideAll;
+aboutModal.onclick=hideAll;
+settingModal.onclick=hideAll;
+document.querySelectorAll('.modal-box').forEach(b=>b.onclick=e=>e.stopPropagation());
 
-        titleElement.style.color = music.color || '#fff';
-        lyricElement.style.color = music.color || '#fff';
-
-        await loadLyrics(music.lrc);
-
-        if (autoPlay) {
-            audioPlayer.play().catch(() => {});
-        }
-    }
-
-    audioPlayer.addEventListener('timeupdate', () => {
-    if (!lyrics.length) return;
-
-    const currentTime = audioPlayer.currentTime;
-
-    for (let i = lyrics.length - 1; i >= 0; i--) {
-        if (currentTime >= lyrics[i].time) {
-            if (lyricElement.textContent !== lyrics[i].content) {
-                lyricElement.textContent = lyrics[i].content;
-            }
-            break;
-        }
-    }
+document.querySelectorAll('[name=mode]').forEach(r=>{
+ r.checked=r.value===settings.mode;
+ r.onchange=()=>{settings.mode=r.value;applySettings();}
 });
+titleSize.value=settings.titleSize;
+lyricSize.value=settings.lyricSize;
+titleSize.oninput=e=>{settings.titleSize=e.target.value;applySettings();}
+lyricSize.oninput=e=>{settings.lyricSize=e.target.value;applySettings();}
 
-    function togglePlayPause() {
-        audioPlayer.paused ? audioPlayer.play() : audioPlayer.pause();
-    }
-
-    function playNext() {
-        currentIndex = (currentIndex + 1) % musicList.length;
-        loadMusic(currentIndex, true);
-    }
-
-    function playPrev() {
-        currentIndex = (currentIndex - 1 + musicList.length) % musicList.length;
-        loadMusic(currentIndex, true);
-    }
-
-    titleElement.addEventListener('click', togglePlayPause);
-    prevButton.addEventListener('click', playPrev);
-    nextButton.addEventListener('click', playNext);
-    audioPlayer.addEventListener('ended', playNext);
-
-    document.addEventListener('keydown', e => {
-        if (e.key === ' ') {
-            e.preventDefault();
-            togglePlayPause();
-        } else if (e.key === 'ArrowLeft') {
-            playPrev();
-        } else if (e.key === 'ArrowRight') {
-            playNext();
-        }
-    });
-
-    window.addEventListener('DOMContentLoaded', () => loadMusic(0, true));
+loadMusic(0,true);
 </script>
+
 </body>
 </html>
