@@ -307,11 +307,27 @@ button:hover{background:rgba(255,255,255,.5);}
         </div>
 
         <div class="about-version">
-            <p class="current-version">当前版本：V1.1.0</p>
+            <p class="current-version">当前版本：V1.2.0</p>
 
             <h3>版本历史</h3>
             <ul class="version-list">
                 <li>
+                    <strong>V1.2.0</strong>
+                    <span>（2026/01/19）</span>
+                    <div>
+                        1.新增收录5首音乐（燕无歇、赤怜、莫问归期、长安姑娘、你若三冬）<br>
+						2.优化音乐目录：显示格式为歌曲名 - 歌手名
+                    </div>
+                </li>
+                <li>
+                    <strong>V1.1.1</strong>
+                    <span>（2026/01/10）</span>
+                    <div>
+                        1.删除1首音乐（赐我）<br>
+						2.解决显示模式切换的Bug
+                    </div>
+                </li>
+				<li>
                     <strong>V1.1.0</strong>
                     <span>（2026/01/09）</span>
                     <div>
@@ -325,7 +341,7 @@ button:hover{background:rgba(255,255,255,.5);}
                     <strong>V1.0.0</strong>
                     <span>（2026/01/07）</span>
                     <div>
-						1.首次发布，收录3首音乐（弱水三千、东南苦行山和牵丝戏）<br>
+						1.首次发布，收录3首音乐（弱水三千、东南苦行山、牵丝戏）<br>
 						2.歌词试验功能（仅东南苦行山有歌词）
 					</div>
                 </li>
@@ -355,16 +371,21 @@ button:hover{background:rgba(255,255,255,.5);}
 <script>
 /* ===== 数据 ===== */
 const musicList=[
- {title:"弱水三千",src:"music/003.mp3",lrc:"lrc/003.lrc",color:"#DC143C"},
- {title:"东南苦行山",src:"music/001.mp3",lrc:"lrc/001.lrc",color:"#3357FF"},
- {title:"牵丝戏",src:"music/002.mp3",lrc:"lrc/002.lrc",color:"#DC143C"},
+ {title:"弱水三千",src:"music/001.mp3",lrc:"lrc/001.lrc",color:"#DC143C"},
+ {title:"东南苦行山",src:"music/002.mp3",lrc:"lrc/002.lrc",color:"#3357FF"},
+ {title:"牵丝戏",src:"music/003.mp3",lrc:"lrc/003.lrc",color:"#DC143C"},
  {title:"辞九门回忆",src:"music/004.mp3",lrc:"lrc/004.lrc",color:"#DC143C"},
  {title:"鸳鸯戏",src:"music/005.mp3",lrc:"lrc/005.lrc",color:"#DC143C"},
  {title:"唐人恋曲",src:"music/006.mp3",lrc:"lrc/006.lrc",color:"#DC143C"},
  {title:"半壶纱",src:"music/007.mp3",lrc:"lrc/007.lrc",color:"#DC143C"},
  {title:"关山酒",src:"music/008.mp3",lrc:"lrc/008.lrc",color:"#DC143C"},
  {title:"春庭雪",src:"music/009.mp3",lrc:"lrc/009.lrc",color:"#DC143C"},
- {title:"折风渡夜",src:"music/012.mp3",lrc:"lrc/012.lrc",color:"#DC143C"}
+ {title:"折风渡夜",src:"music/010.mp3",lrc:"lrc/010.lrc",color:"#DC143C"},
+ {title:"燕无歇",src:"music/011.mp3",lrc:"lrc/011.lrc",color:"#DC143C"},
+ {title:"莫问归期",src:"music/012.mp3",lrc:"lrc/012.lrc",color:"#DC143C"},
+ {title:"赤怜",src:"music/013.mp3",lrc:"lrc/013.lrc",color:"#DC143C"},
+ {title:"长安姑娘",src:"music/014.mp3",lrc:"lrc/014.lrc",color:"#DC143C"},
+ {title:"你若三冬",src:"music/015.mp3",lrc:"lrc/015.lrc",color:"#DC143C"}
 ];
 
 let currentIndex=0;
@@ -424,15 +445,32 @@ function applySettings(){
 
 
 async function loadLyrics(path){
- lyrics=[];
- lyric.innerHTML='&nbsp;';
- if(!path)return;
- const text=await fetch(path).then(r=>r.text());
- text.split('\n').forEach(l=>{
-  const m=l.match(/\[(\d+):(\d+\.?\d*)](.*)/);
-  if(m)lyrics.push({time:+m[1]*60+ +m[2],content:m[3]});
- });
+    lyrics = [];
+    lyric.innerHTML = '&nbsp;';
+    if(!path) return;
+
+    const text = await fetch(path).then(r => r.text());
+    const lines = text.split('\n');
+
+    // 解析歌手
+    const arLine = lines.find(l => l.startsWith('[ar:'));
+    if(arLine){
+        const artist = arLine.replace('[ar:', '').replace(']', '').trim();
+        musicList[currentIndex].artist = artist;
+    }
+
+    // 解析歌词正文
+    lines.forEach(l => {
+        const m = l.match(/\[(\d+):(\d+\.?\d*)](.*)/);
+        if(m){
+            lyrics.push({
+                time: +m[1] * 60 + +m[2],
+                content: m[3]
+            });
+        }
+    });
 }
+
 
 async function loadMusic(i,play=true){
  currentIndex=i;
@@ -464,19 +502,39 @@ audio.ontimeupdate = () => {
 
 
 function updatePlaylist(){
- songList.innerHTML='';
- musicList.forEach((m,i)=>{
-  const li=document.createElement('li');
-  li.textContent=m.title;
-  if(i===currentIndex){
-   li.classList.add('active');
-   li.style.color=m.color;
-  }else{
-   li.style.color='#fff';
-  }
-  li.onclick=()=>loadMusic(i,true);
-  songList.appendChild(li);
- });
+    songList.innerHTML = '';
+    musicList.forEach((m, i) => {
+        const li = document.createElement('li');
+
+        // 仅播放列表显示「歌名 - 歌手」
+        li.textContent = m.artist ? `${m.title} - ${m.artist}` : m.title;
+
+        if(i === currentIndex){
+            li.classList.add('active');
+            li.style.color = m.color;
+        }else{
+            li.style.color = '#fff';
+        }
+
+        li.onclick = () => loadMusic(i, true);
+        songList.appendChild(li);
+    });
+}
+
+async function preloadArtists(){
+    const tasks = musicList.map(async (m) => {
+        if(!m.lrc) return;
+
+        try{
+            const text = await fetch(m.lrc).then(r => r.text());
+            const arMatch = text.match(/\[ar:(.*?)\]/);
+            m.artist = arMatch ? arMatch[1].trim() : '';
+        }catch(e){
+            m.artist = '';
+        }
+    });
+
+    await Promise.all(tasks);
 }
 
 prev.onclick=()=>loadMusic((currentIndex-1+musicList.length)%musicList.length,true);
@@ -509,7 +567,11 @@ lyricSize.value=settings.lyricSize;
 titleSize.oninput=e=>{settings.titleSize=e.target.value;applySettings();}
 lyricSize.oninput=e=>{settings.lyricSize=e.target.value;applySettings();}
 
-loadMusic(0,true);
+(async () => {
+    await preloadArtists();   // 先加载所有歌手
+    updatePlaylist();         // 再渲染列表
+    loadMusic(0, true);       // 最后播放
+})();
 </script>
 
 </body>
