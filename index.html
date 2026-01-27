@@ -259,25 +259,75 @@ button:hover{background:rgba(255,255,255,.5);}
 .about-version::-webkit-scrollbar-track{
     background:transparent;
 }
+
+/* ===== 重影模式 ===== */
+.shadow-wrap{
+    position:absolute;
+    inset:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    pointer-events:none;
+}
+
+#shadowText{
+    position:absolute;
+    font-weight:400;
+    opacity:.35;
+    white-space:nowrap;
+    text-align:center;
+}
+
+#frontText{
+    position:absolute;
+    font-weight:400;
+    color:#fff;
+    white-space:nowrap;
+    text-align:center;
+}
+
+/* ===== 播放控制遮罩 ===== */
+#playMask{
+    position:absolute;
+    inset:0;
+    z-index:2;
+    cursor:pointer;
+}
+
+.buttons,
+.top-buttons{ z-index:4; }
+
+.shadow-wrap,
+#title,
+#lyric{ z-index:1; }
+
+/* ===== 模态框拖动 ===== */
+.modal-box h2{
+ cursor:move;
+ user-select:none;
+}
+
 </style>
 </head>
 
 <body>
-
 <div class="player">
     <div class="top-buttons">
         <button id="btnSetting">⚙</button>
         <button id="btnAbout">i</button>
         <button id="btnList">≡</button>
     </div>
-
-    <div id="title">加载中…</div>
-    <div id="lyric">&nbsp;</div>
-
     <div class="buttons">
         <button id="prev">◀</button>
         <button id="next">▶</button>
     </div>
+	<div id="playMask"></div>
+	<div class="shadow-wrap">
+		<div id="shadowText"></div>
+		<div id="frontText"></div>
+	</div>
+	<div id="title">加载中…</div>
+	<div id="lyric">&nbsp;</div>
 
     <audio id="audio"></audio>
 </div>
@@ -307,10 +357,19 @@ button:hover{background:rgba(255,255,255,.5);}
         </div>
 
         <div class="about-version">
-            <p class="current-version">当前版本：V1.2.0</p>
+            <p class="current-version">当前版本：V1.3.0</p>
 
             <h3>版本历史</h3>
             <ul class="version-list">
+                <li>
+                    <strong>V1.3.0</strong>
+                    <span>（2026/01/27）</span>
+                    <div>
+                        1.新增收录1首音乐（精卫）<br>
+						2.新增显示模式：标题-歌词（重影）、歌词（重影）
+						3.设置、关于窗口可拖动
+                    </div>
+                </li>
                 <li>
                     <strong>V1.2.0</strong>
                     <span>（2026/01/19）</span>
@@ -323,18 +382,17 @@ button:hover{background:rgba(255,255,255,.5);}
                     <strong>V1.1.1</strong>
                     <span>（2026/01/10）</span>
                     <div>
-                        1.删除1首音乐（赐我）<br>
-						2.解决显示模式切换的Bug
+                        解决显示模式切换的Bug
                     </div>
                 </li>
 				<li>
                     <strong>V1.1.0</strong>
                     <span>（2026/01/09）</span>
                     <div>
-                        1.新增设置功能：标题和歌词大小调整、显示模式切换<br>
+                        1.新增设置功能：标题和歌词大小调整、显示模式：标题、标题-歌词、歌词<br>
                         2.新增歌曲列表功能，支持快速索引与切换<br>
 						3.歌词功能正式加入（所有音乐有歌词）<br>
-						4.新增收录8首音乐（辞九门回忆、鸳鸯戏、唐人恋曲、半壶纱、关山酒、春庭雪、赐我、折风渡夜）
+						4.新增收录8首音乐（辞九门回忆、鸳鸯戏、唐人恋曲、半壶纱、关山酒、春庭雪、折风渡夜）
                     </div>
                 </li>
                 <li>
@@ -355,10 +413,13 @@ button:hover{background:rgba(255,255,255,.5);}
     <div class="modal-box">
         <h2>设置</h2>
 
-        <p>模式</p>
+        <p>显示模式</p>
         <label><input type="radio" name="mode" value="title"> 标题</label>
         <label><input type="radio" name="mode" value="title-lyric"> 标题-歌词</label>
+		<label><input type="radio" name="mode" value="title-lyric-shadow"> 标题-歌词（重影）</label>
         <label><input type="radio" name="mode" value="lyric"> 歌词</label>
+		<label><input type="radio" name="mode" value="lyric-lyric-shadow"> 歌词（重影）</label>
+
 
         <p>标题大小</p>
         <input type="range" id="titleSize" min="40" max="140">
@@ -385,14 +446,15 @@ const musicList=[
  {title:"莫问归期",src:"music/012.mp3",lrc:"lrc/012.lrc",color:"#DC143C"},
  {title:"赤怜",src:"music/013.mp3",lrc:"lrc/013.lrc",color:"#DC143C"},
  {title:"长安姑娘",src:"music/014.mp3",lrc:"lrc/014.lrc",color:"#DC143C"},
- {title:"你若三冬",src:"music/015.mp3",lrc:"lrc/015.lrc",color:"#DC143C"}
+ {title:"你若三冬",src:"music/015.mp3",lrc:"lrc/015.lrc",color:"#DC143C"},
+ {title:"精卫",src:"music/016.mp3",lrc:"lrc/016.lrc",color:"#DC143C"}
 ];
 
 let currentIndex=0;
 let currentTitle='';
 let lyrics=[];
 
-/* DOM */
+/* ===== DOM ===== */
 const audio=document.getElementById('audio');
 const title=document.getElementById('title');
 const lyric=document.getElementById('lyric');
@@ -402,151 +464,241 @@ const mask=document.getElementById('mask');
 const aboutModal=document.getElementById('aboutModal');
 const settingModal=document.getElementById('settingModal');
 
-/* 设置 */
+const shadowText=document.getElementById('shadowText');
+const frontText=document.getElementById('frontText');
+const playMask=document.getElementById('playMask');
+
+/* ===== 设置 ===== */
 const settings={
  mode:getCookie('mode')||'title-lyric',
  titleSize:+getCookie('titleSize')||96,
  lyricSize:+getCookie('lyricSize')||36
 };
 
-function setCookie(k,v){document.cookie=`${k}=${v};path=/;max-age=31536000`;}
+function setCookie(k,v){
+ document.cookie=`${k}=${v};path=/;max-age=31536000`;
+}
 function getCookie(k){
  const m=document.cookie.match(new RegExp('(^| )'+k+'=([^;]+)'));
  return m?m[2]:null;
 }
 
+function updateDocumentTitle(){
+ document.title=currentTitle?`破晓音乐 - ${currentTitle}`:'破晓音乐';
+}
+
+/* ===== 获取当前歌词 ===== */
+function getCurrentLyricText(){
+ if(!lyrics.length) return currentTitle;
+ for(let i=lyrics.length-1;i>=0;i--){
+  if(audio.currentTime>=lyrics[i].time){
+   return lyrics[i].content||currentTitle;
+  }
+ }
+ return currentTitle;
+}
+
+/* ===== 模态框拖动 ===== */
+
+function enableModalDrag(modalBox, handle){
+ let dragging=false, startX=0, startY=0, boxX=0, boxY=0;
+
+ handle.onmousedown=e=>{
+  dragging=true;
+  startX=e.clientX;
+  startY=e.clientY;
+
+  const rect=modalBox.getBoundingClientRect();
+  boxX=rect.left;
+  boxY=rect.top;
+
+  modalBox.style.position='fixed';
+  modalBox.style.transform='none';
+
+  document.onmousemove=ev=>{
+   if(!dragging)return;
+   modalBox.style.left=boxX+(ev.clientX-startX)+'px';
+   modalBox.style.top =boxY+(ev.clientY-startY)+'px';
+  };
+
+  document.onmouseup=()=>{
+   dragging=false;
+   document.onmousemove=null;
+   document.onmouseup=null;
+  };
+ };
+}
+
+
+/* ===== 应用设置 ===== */
 function applySettings(){
-    title.style.fontSize = settings.titleSize + 'px';
-    lyric.style.fontSize = settings.lyricSize + 'px';
+ title.style.display='none';
+ lyric.style.display='none';
+ shadowText.style.display='none';
+ frontText.style.display='none';
 
-    // 统一先显示
-    title.style.display = '';
-    lyric.style.display = '';
+ title.style.fontSize=settings.titleSize+'px';
+ lyric.style.fontSize=settings.lyricSize+'px';
 
-    if(settings.mode === 'title'){
-        title.textContent = currentTitle;
-        lyric.style.display = 'none';
-    }
+ if(settings.mode==='title'){
+  title.style.display='';
+  title.textContent=currentTitle;
+ }
 
-    if(settings.mode === 'title-lyric'){
-        title.textContent = currentTitle;
-        // lyric 内容由 ontimeupdate 驱动
-    }
+ if(settings.mode==='title-lyric'){
+  title.style.display='';
+  lyric.style.display='';
+  title.textContent=currentTitle;
+ }
 
-    if(settings.mode === 'lyric'){
-        lyric.style.display = 'none';
-        // title 内容由 ontimeupdate 驱动
-    }
+ if(settings.mode==='lyric'){
+  title.style.display='';
+ }
 
-    setCookie('mode', settings.mode);
-    setCookie('titleSize', settings.titleSize);
-    setCookie('lyricSize', settings.lyricSize);
+ if(settings.mode==='title-lyric-shadow'){
+  shadowText.style.display='';
+  frontText.style.display='';
+
+  shadowText.textContent=currentTitle;
+  shadowText.style.fontSize=settings.lyricSize*2+'px';
+  shadowText.style.color=musicList[currentIndex].color;
+
+  frontText.textContent=currentTitle;
+  frontText.style.fontSize=settings.lyricSize+'px';
+ }
+
+ if(settings.mode==='lyric-lyric-shadow'){
+  shadowText.style.display='';
+  frontText.style.display='';
+
+  shadowText.textContent=currentTitle;
+  shadowText.style.fontSize=settings.lyricSize*2+'px';
+  shadowText.style.color=musicList[currentIndex].color;
+
+  frontText.textContent=currentTitle;
+  frontText.style.fontSize=settings.lyricSize+'px';
+ }
+
+ setCookie('mode',settings.mode);
+ setCookie('titleSize',settings.titleSize);
+ setCookie('lyricSize',settings.lyricSize);
 }
 
-
+/* ===== 歌词 ===== */
 async function loadLyrics(path){
-    lyrics = [];
-    lyric.innerHTML = '&nbsp;';
-    if(!path) return;
+ lyrics=[];
+ lyric.innerHTML='&nbsp;';
+ if(!path)return;
 
-    const text = await fetch(path).then(r => r.text());
-    const lines = text.split('\n');
+ const text=await fetch(path).then(r=>r.text());
+ const lines=text.split('\n');
 
-    // 解析歌手
-    const arLine = lines.find(l => l.startsWith('[ar:'));
-    if(arLine){
-        const artist = arLine.replace('[ar:', '').replace(']', '').trim();
-        musicList[currentIndex].artist = artist;
-    }
+ const arLine=lines.find(l=>l.startsWith('[ar:'));
+ if(arLine){
+  musicList[currentIndex].artist=
+   arLine.replace('[ar:','').replace(']','').trim();
+ }
 
-    // 解析歌词正文
-    lines.forEach(l => {
-        const m = l.match(/\[(\d+):(\d+\.?\d*)](.*)/);
-        if(m){
-            lyrics.push({
-                time: +m[1] * 60 + +m[2],
-                content: m[3]
-            });
-        }
-    });
+ lines.forEach(l=>{
+  const m=l.match(/\[(\d+):(\d+\.?\d*)](.*)/);
+  if(m){
+   lyrics.push({
+    time:+m[1]*60+ +m[2],
+    content:m[3]
+   });
+  }
+ });
 }
 
-
+/* ===== 加载音乐 ===== */
 async function loadMusic(i,play=true){
  currentIndex=i;
  const m=musicList[i];
  audio.src=m.src;
  currentTitle=m.title;
+
  title.textContent=currentTitle;
  title.style.color=m.color;
  lyric.style.color=m.color;
+ shadowText.style.color=m.color;
+
+ updateDocumentTitle();
  await loadLyrics(m.lrc);
  applySettings();
  updatePlaylist();
  if(play)audio.play();
 }
 
-audio.ontimeupdate = () => {
-    for(let i = lyrics.length - 1; i >= 0; i--){
-        if(audio.currentTime >= lyrics[i].time){
-            if(settings.mode === 'title-lyric'){
-                lyric.textContent = lyrics[i].content || '';
-            }
-            if(settings.mode === 'lyric'){
-                title.textContent = lyrics[i].content || currentTitle;
-            }
-            break;
-        }
-    }
+/* ===== 播放驱动 ===== */
+audio.ontimeupdate=()=>{
+ const txt=getCurrentLyricText();
+
+ if(settings.mode==='title-lyric'){
+  lyric.textContent=txt===currentTitle?'':txt;
+ }
+
+ if(settings.mode==='lyric'){
+  title.textContent=txt;
+ }
+
+ if(settings.mode==='title-lyric-shadow'){
+  shadowText.textContent=currentTitle;
+  frontText.textContent=txt;
+ }
+
+ if(settings.mode==='lyric-lyric-shadow'){
+  shadowText.textContent=txt;
+  frontText.textContent=txt;
+ }
 };
 
-
+/* ===== 播放列表 ===== */
 function updatePlaylist(){
-    songList.innerHTML = '';
-    musicList.forEach((m, i) => {
-        const li = document.createElement('li');
-
-        // 仅播放列表显示「歌名 - 歌手」
-        li.textContent = m.artist ? `${m.title} - ${m.artist}` : m.title;
-
-        if(i === currentIndex){
-            li.classList.add('active');
-            li.style.color = m.color;
-        }else{
-            li.style.color = '#fff';
-        }
-
-        li.onclick = () => loadMusic(i, true);
-        songList.appendChild(li);
-    });
+ songList.innerHTML='';
+ musicList.forEach((m,i)=>{
+  const li=document.createElement('li');
+  li.textContent=m.artist?`${m.title} - ${m.artist}`:m.title;
+  if(i===currentIndex){
+   li.classList.add('active');
+   li.style.color=m.color;
+  }
+  li.onclick=()=>loadMusic(i,true);
+  songList.appendChild(li);
+ });
 }
 
 async function preloadArtists(){
-    const tasks = musicList.map(async (m) => {
-        if(!m.lrc) return;
-
-        try{
-            const text = await fetch(m.lrc).then(r => r.text());
-            const arMatch = text.match(/\[ar:(.*?)\]/);
-            m.artist = arMatch ? arMatch[1].trim() : '';
-        }catch(e){
-            m.artist = '';
-        }
-    });
-
-    await Promise.all(tasks);
+ await Promise.all(musicList.map(async m=>{
+  if(!m.lrc)return;
+  try{
+   const t=await fetch(m.lrc).then(r=>r.text());
+   const ar=t.match(/\[ar:(.*?)\]/);
+   m.artist=ar?ar[1].trim():'';
+  }catch{m.artist='';}
+ }));
 }
 
+/* ===== 控制 ===== */
 prev.onclick=()=>loadMusic((currentIndex-1+musicList.length)%musicList.length,true);
 next.onclick=()=>loadMusic((currentIndex+1)%musicList.length,true);
 audio.onended=()=>next.onclick();
-title.onclick=()=>audio.paused?audio.play():audio.pause();
 
+/* 点击遮罩控制播放 / 暂停 */
+playMask.onclick=()=>{
+ audio.paused?audio.play():audio.pause();
+};
+
+/* ===== 模态 ===== */
 function hideAll(){
  aboutModal.style.display='none';
  settingModal.style.display='none';
  playlist.classList.remove('show');
  mask.style.display='none';
+ document.querySelectorAll('.modal-box').forEach(b=>{
+  b.style.left='';
+  b.style.top='';
+  b.style.transform='';
+ });
 }
 
 btnSetting.onclick=()=>{hideAll();settingModal.style.display='flex';mask.style.display='block';};
@@ -558,20 +710,34 @@ aboutModal.onclick=hideAll;
 settingModal.onclick=hideAll;
 document.querySelectorAll('.modal-box').forEach(b=>b.onclick=e=>e.stopPropagation());
 
+/* ===== 设置绑定 ===== */
 document.querySelectorAll('[name=mode]').forEach(r=>{
  r.checked=r.value===settings.mode;
  r.onchange=()=>{settings.mode=r.value;applySettings();}
 });
+
 titleSize.value=settings.titleSize;
 lyricSize.value=settings.lyricSize;
 titleSize.oninput=e=>{settings.titleSize=e.target.value;applySettings();}
 lyricSize.oninput=e=>{settings.lyricSize=e.target.value;applySettings();}
 
-(async () => {
-    await preloadArtists();   // 先加载所有歌手
-    updatePlaylist();         // 再渲染列表
-    loadMusic(0, true);       // 最后播放
+/* ===== 启动 ===== */
+(async()=>{
+ await preloadArtists();
+ updatePlaylist();
+ loadMusic(0,true);
 })();
+
+enableModalDrag(
+ document.querySelector('#settingModal .modal-box'),
+ document.querySelector('#settingModal h2')
+);
+
+enableModalDrag(
+ document.querySelector('#aboutModal .modal-box'),
+ document.querySelector('#aboutModal h2')
+);
+
 </script>
 
 </body>
