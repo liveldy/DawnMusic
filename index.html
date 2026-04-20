@@ -357,10 +357,18 @@ button:hover{background:rgba(255,255,255,.5);}
         </div>
 
         <div class="about-version">
-            <p class="current-version">当前版本：V1.3.0</p>
+            <p class="current-version">当前版本：V1.4.0</p>
 
             <h3>版本历史</h3>
             <ul class="version-list">
+                <li>
+                    <strong>V1.4.0</strong>
+                    <span>（2026/04/20）</span>
+                    <div>
+                        1.新增收录2首音乐（琵琶行、精卫-一颗狼星）<br>
+						2.新增乐曲多版本分组功能
+                    </div>
+                </li>
                 <li>
                     <strong>V1.3.0</strong>
                     <span>（2026/01/27）</span>
@@ -447,12 +455,18 @@ const musicList=[
  {title:"赤怜",src:"music/013.mp3",lrc:"lrc/013.lrc",color:"#DC143C"},
  {title:"长安姑娘",src:"music/014.mp3",lrc:"lrc/014.lrc",color:"#DC143C"},
  {title:"你若三冬",src:"music/015.mp3",lrc:"lrc/015.lrc",color:"#DC143C"},
- {title:"精卫",src:"music/016.mp3",lrc:"lrc/016.lrc",color:"#DC143C"}
+ {title:"精卫",src:"music/016.mp3",lrc:"lrc/016.lrc",color:"#DC143C"},
+ {title:"精卫",src:"music/017.mp3",lrc:"lrc/017.lrc",color:"#DC143C"},
+ {title:"琵琶行",src:"music/018.mp3",lrc:"lrc/018.lrc",color:"#DC143C"},
+ {title:"琵琶行",src:"music/019.mp3",lrc:"lrc/019.lrc",color:"#DC143C"}
 ];
 
 let currentIndex=0;
 let currentTitle='';
 let lyrics=[];
+let groupedMap = {};
+let groupState = {};
+let currentGroup = '';
 
 /* ===== DOM ===== */
 const audio=document.getElementById('audio');
@@ -614,6 +628,8 @@ async function loadLyrics(path){
 async function loadMusic(i,play=true){
  currentIndex=i;
  const m=musicList[i];
+ currentGroup=m.title;  
+
  audio.src=m.src;
  currentTitle=m.title;
 
@@ -625,7 +641,8 @@ async function loadMusic(i,play=true){
  updateDocumentTitle();
  await loadLyrics(m.lrc);
  applySettings();
- updatePlaylist();
+ updatePlaylist(); 
+
  if(play)audio.play();
 }
 
@@ -655,15 +672,67 @@ audio.ontimeupdate=()=>{
 /* ===== 播放列表 ===== */
 function updatePlaylist(){
  songList.innerHTML='';
- musicList.forEach((m,i)=>{
-  const li=document.createElement('li');
-  li.textContent=m.artist?`${m.title} - ${m.artist}`:m.title;
-  if(i===currentIndex){
-   li.classList.add('active');
-   li.style.color=m.color;
+
+ Object.keys(groupedMap).forEach(title=>{
+  const group = groupedMap[title];
+
+  if(group.length === 1){
+   const i = group[0];
+   const m = musicList[i];
+
+   const li=document.createElement('li');
+   li.textContent = m.artist ? `${m.title} - ${m.artist}` : m.title;
+
+   if(i===currentIndex){
+    li.classList.add('active');
+    li.style.color=m.color;
+   }
+
+   li.onclick=()=>loadMusic(i,true);
+
+   songList.appendChild(li);
+   return;
   }
-  li.onclick=()=>loadMusic(i,true);
-  songList.appendChild(li);
+
+  const header=document.createElement('li');
+  header.style.fontWeight='400';
+  header.style.opacity='0.9';
+
+  const shouldOpen = groupState[title] || title===currentGroup;
+
+  header.textContent = (shouldOpen?'▼ ':'▶ ') + title;
+
+  header.onclick=()=>{
+   groupState[title]=!groupState[title];
+   updatePlaylist();
+  };
+
+  if(title===currentGroup){
+   header.style.color = musicList[currentIndex].color;
+  }
+
+  songList.appendChild(header);
+
+  // 子项
+  if(shouldOpen){
+   group.forEach(i=>{
+    const m=musicList[i];
+
+    const li=document.createElement('li');
+    li.style.paddingLeft='20px';
+
+    li.textContent = m.artist ? `${m.title} - ${m.artist}` : m.title;
+
+    if(i===currentIndex){
+     li.classList.add('active');
+     li.style.color=m.color;
+    }
+
+    li.onclick=()=>loadMusic(i,true);
+
+    songList.appendChild(li);
+   });
+  }
  });
 }
 
@@ -678,12 +747,25 @@ async function preloadArtists(){
  }));
 }
 
+function buildGroups(){
+ groupedMap={};
+ musicList.forEach((m,i)=>{
+  if(!groupedMap[m.title]){
+   groupedMap[m.title]=[];
+  }
+  groupedMap[m.title].push(i);
+ });
+
+ Object.keys(groupedMap).forEach(k=>{
+  groupState[k]=false;
+ });
+}
+
 /* ===== 控制 ===== */
 prev.onclick=()=>loadMusic((currentIndex-1+musicList.length)%musicList.length,true);
 next.onclick=()=>loadMusic((currentIndex+1)%musicList.length,true);
 audio.onended=()=>next.onclick();
 
-/* 点击遮罩控制播放 / 暂停 */
 playMask.onclick=()=>{
  audio.paused?audio.play():audio.pause();
 };
@@ -724,6 +806,7 @@ lyricSize.oninput=e=>{settings.lyricSize=e.target.value;applySettings();}
 /* ===== 启动 ===== */
 (async()=>{
  await preloadArtists();
+ buildGroups();   
  updatePlaylist();
  loadMusic(0,true);
 })();
